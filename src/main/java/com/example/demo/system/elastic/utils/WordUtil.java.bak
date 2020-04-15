@@ -1,0 +1,305 @@
+package com.example.demo.system.utils;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import net.sourceforge.tess4j.ITesseract;
+import net.sourceforge.tess4j.Tesseract;
+import net.sourceforge.tess4j.TesseractException;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
+import org.apache.pdfbox.cos.COSName;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDResources;
+import org.apache.pdfbox.pdmodel.graphics.PDXObject;
+import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
+import org.apache.pdfbox.text.PDFTextStripper;
+import org.apache.pdfbox.text.PDFTextStripperByArea;
+import org.apache.poi.hssf.usermodel.HSSFCell;
+import org.apache.poi.hssf.usermodel.HSSFRow;
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.xwpf.extractor.XWPFWordExtractor;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
+import org.apache.poi.xwpf.usermodel.XWPFPictureData;
+import org.springframework.util.Base64Utils;
+
+import javax.imageio.ImageIO;
+import javax.sound.sampled.AudioFormat;
+import javax.sound.sampled.AudioInputStream;
+import javax.sound.sampled.AudioSystem;
+import javax.xml.bind.DatatypeConverter;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.*;
+import java.util.List;
+import java.util.*;
+import java.util.function.Consumer;
+
+public class WordUtil {
+
+    public static void main(String[] args) throws Exception {
+        readPDF();
+//        readIMG();
+//        readAudio();
+//        ImageTset();
+    }
+
+    public static void world() throws Exception {
+        FileInputStream fis = new FileInputStream("D:\\world\\test.docx");
+//        FileOutputStream fisOutput = new FileOutputStream("D:\\world\\b.docx");
+        XWPFDocument document = new XWPFDocument(fis);
+        XWPFWordExtractor xwpfWordExtractor = new XWPFWordExtractor(document);
+        String text = xwpfWordExtractor.getText();
+        System.out.println(text);
+//        xwpfWordExtractor.getDocument().write(fisOutput);
+//        fisOutput.write(xwpfWordExtractor.getDocument().write(););
+//        fisOutput.close();
+        List<XWPFPictureData> picList = document.getAllPictures();//图片
+        for (XWPFPictureData pic : picList) {
+            byte[] bytev = pic.getData();
+            if (bytev.length > 300) {
+                FileOutputStream fos = new FileOutputStream("D:\\world\\" + pic.getFileName());
+                fos.write(bytev);
+            }
+        }
+        fis.close();
+    }
+
+    public static void readTable() throws Exception {
+        InputStream ips = new FileInputStream("D:\\world\\test.xls");
+        HSSFWorkbook wb = new HSSFWorkbook(ips);
+        HSSFSheet sheet = wb.getSheetAt(0);
+        for (Iterator ite = sheet.rowIterator(); ite.hasNext(); ) {
+            HSSFRow row = (HSSFRow) ite.next();
+            for (Iterator itet = row.cellIterator(); itet.hasNext(); ) {
+                HSSFCell cell = (HSSFCell) itet.next();
+                if (cell != null) {
+                    System.out.print(cell);
+                }
+            }
+        }
+    }
+
+    public static void readPDF() throws Exception {
+//        PDDocument pdDocument = PDDocument.load(new File("D:\\world\\Apache-Shiro开发文档.pdf"));
+        PDDocument pdDocument = PDDocument.load(new File("D:\\world\\test\\test.pdf"));
+        pdDocument.getClass();
+        if (!pdDocument.isEncrypted()) {
+            PDFTextStripperByArea pdfTextStripperByArea = new PDFTextStripperByArea();
+            pdfTextStripperByArea.setSortByPosition(true);
+            PDFTextStripper pdfTextStripper = new PDFTextStripper();
+            String text = pdfTextStripper.getText(pdDocument);
+            System.out.println(text);
+        }
+//        convertImage(pdDocument.getPages().iterator());
+        mergeImage(pdDocument.getPages().iterator());
+    }
+
+    public static void ImageTset() throws Exception {
+        //创建四个文件对象（注：这里四张图片的宽度都是相同的，因此下文定义BufferedImage宽度就取第一只的宽度就行了）
+
+        BufferedImage src1 = ImageIO.read(new File("D:\\world\\test\\1.jpg"));
+        BufferedImage src2 = ImageIO.read(new File("D:\\world\\test\\2.jpg"));
+        BufferedImage src3 = ImageIO.read(new File("D:\\world\\test\\3.jpg"));
+        BufferedImage src4 = ImageIO.read(new File("D:\\world\\test\\4.jpg"));
+        //获取图片的宽度
+        int width = src1.getWidth();
+        //获取各个图像的高度
+        int height1 = src1.getHeight();
+        int height2 = src2.getHeight();
+        int height3 = src3.getHeight();
+        int height4 = src4.getHeight();
+        System.out.println(height1);
+        //构造一个类型为预定义图像类型之一的 BufferedImage。 宽度为第一只的宽度，高度为各个图片高度之和
+        BufferedImage tag = new BufferedImage(width, height1 + height2 + height3 + height4, BufferedImage.TYPE_INT_RGB);
+        //绘制合成图像
+        Graphics g = tag.createGraphics();
+        g.drawImage(src1, 0, 0, width, height1, null);
+        g.drawImage(src2, 0, height1, width, height2, null);
+        g.drawImage(src3, 0, height1 + height2, width, height3, null);
+        g.drawImage(src4, 0, height1 + height2 + height3, width, height4, null);
+        // 释放此图形的上下文以及它使用的所有系统资源。
+        g.dispose();
+        //将绘制的图像生成至输出流
+
+        ImageIO.write(tag, "jpg", new File("D:\\world\\test\\c.jpg"));
+        //关闭输出流
+        System.out.println("藏宝图出来了");
+    }
+
+    public static void mergeImage(Iterator<PDPage> iterator) throws IOException {
+        ArrayList<BufferedImage> bufferedImages = new ArrayList<>();
+        iterator.forEachRemaining(new Consumer<PDPage>() {
+            public void accept(PDPage pdPage) {
+                PDResources pdResources = pdPage.getResources();
+                Iterable<COSName> iterable = pdResources.getXObjectNames();
+                iterable.forEach(new Consumer<COSName>() {
+                    public void accept(COSName t) {
+                        try {
+                            if (pdResources.isImageXObject(t)) {
+                                PDXObject pdXObject = pdResources.getXObject(t);
+                                PDImageXObject pdImageXObject = (PDImageXObject) pdXObject;
+                                String suffix = pdImageXObject.getSuffix();
+                                int width = pdImageXObject.getWidth();
+                                int height = pdImageXObject.getHeight();
+                                System.out.println("Height:" + height + " Width:" + width + " Suffix:" + suffix);
+                                BufferedImage image = pdImageXObject.getImage();
+                                bufferedImages.add(image);
+//                                int heightNew = (int) threadLocal.get();
+//                                System.out.println(heightNew);
+//                                g2d.drawImage(image, 0, heightNew, width, height, null);
+//                                threadLocal.set(heightNew + height);
+                            } else {
+                                System.out.println("COSName " + t.getName() + " isOtherXObject");
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                });
+
+            }
+        });
+        BufferedImage tag = new BufferedImage(610, 675 * 5, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g2d = tag.createGraphics();
+        int startHight = 0;
+        int size = bufferedImages.size();
+        for (int i = 0; i < size; i++) {
+            g2d.drawImage(bufferedImages.get(i), 0, startHight, bufferedImages.get(i).getWidth(), bufferedImages.get(i).getHeight(), null);
+            startHight = startHight + bufferedImages.get(i).getHeight();
+        }
+        ImageIO.write(tag, "jpg", new File("D:\\world\\test", "test.jpg"));
+        g2d.dispose();
+    }
+
+    public static void convertImage(Iterator<PDPage> iterator) {
+        StringBuilder stringBuilder = new StringBuilder();
+        ITesseract instance = new Tesseract();
+        instance.setDatapath("D:\\IdeaProjects\\demo\\src\\main\\resources\\tessdata");
+        instance.setLanguage("chi_sim");
+        iterator.forEachRemaining(new Consumer<PDPage>() {
+            public void accept(PDPage pdPage) {
+                PDResources pdResources = pdPage.getResources();
+                Iterable<COSName> iterable = pdResources.getXObjectNames();
+                iterable.forEach(new Consumer<COSName>() {
+                    public void accept(COSName t) {
+                        try {
+                            if (pdResources.isImageXObject(t)) {
+                                PDXObject pdXObject = pdResources.getXObject(t);
+                                PDImageXObject pdImageXObject = (PDImageXObject) pdXObject;
+                                String suffix = pdImageXObject.getSuffix();
+                                System.out.println("Height:" + pdImageXObject.getHeight() + " Width:" + pdImageXObject.getWidth() + " Suffix:" + suffix);
+                                BufferedImage image = pdImageXObject.getImage();
+
+                                stringBuilder.append(instance.doOCR(image));
+//                                 ImageIO.write(image, suffix, new File("D:\\world", UUID.randomUUID().toString() + "." + suffix));
+                            } else {
+//                                System.out.println("COSName " + t.getName() + " isOtherXObject");
+                            }
+                        } catch (IOException | TesseractException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                });
+            }
+        });
+        System.out.println(stringBuilder.toString());
+    }
+
+    public static void readIMG() throws Exception {
+        String result = null;
+        File imageFile = new File("D:\\world\\2fc81f0c-8717-4d86-a2c2-737f001f7516.jpg");
+//        File imageFile = new File("D:\\world\\test.png");
+        ITesseract instance = new Tesseract();
+        instance.setDatapath("D:\\IdeaProjects\\demo\\src\\main\\resources\\tessdata");
+        instance.setLanguage("chi_sim");
+        result = instance.doOCR(imageFile);
+        System.out.println(result);
+    }
+
+    public static void readIMG1() throws Exception {
+        String ak = "UQhlfU7H1UFKVKPfjMjsQCYG";
+        String sk = "qiZYWcf7q5eI8HwIqoGD313Y4MYOv5pf";
+        String authHost = "https://aip.baidubce.com/oauth/2.0/token?";
+        String getAccessTokenUrl = authHost + "grant_type=client_credentials" + "&client_id=" + ak + "&client_secret=" + sk;
+        String str = HttpUtil.get(getAccessTokenUrl);
+        JsonNode jsonNode = JsonUtil.create().jsonToObject(str, JsonNode.class);
+
+        String POST_URL = "https://aip.baidubce.com/rest/2.0/ocr/v1/general_basic?access_token=" + jsonNode.get("access_token").asText();
+        byte[] bytes = FileUtils.readFileToByteArray(new File("D:\\world\\2fc81f0c-8717-4d86-a2c2-737f001f7516.jpg"));
+        Map<String, String> requestHeads = new HashMap<>();
+        requestHeads.put("Content-Type", "application/x-www-form-urlencoded");
+        Map<String, Object> params = new HashMap<>();
+        params.put("image", Base64Utils.encodeToString(bytes));
+        System.out.println(HttpUtil.post(POST_URL, params, requestHeads));
+    }
+
+    public static void readIMG2() throws Exception {
+
+        String POST_URL = "https://ocrapi-advanced.taobao.com/ocrservice/advanced";
+        byte[] bytes = FileUtils.readFileToByteArray(new File("D:\\world\\test1.jpg"));
+        Map<String, String> requestHeads = new HashMap<>();
+        requestHeads.put("Authorization", "APPCODE " + "83359fd73fe94948385f570e3c139105");
+        Map<String, Object> params = new HashMap<>();
+        params.put("img", Base64Utils.encodeToString(bytes));
+        System.out.println(HttpUtil.post(POST_URL, params, requestHeads));
+    }
+
+
+    public static void readAudio() throws Exception {
+        //合成的MP3语音文件
+//        String path = "D:\\world\\16k.wav";
+        //MP3转pcm要保存的路径和文件名
+//        String path2 = "D:\\world\\1901241704.pcm";
+//        WordUtil.mp3Convertpcm(path, path2);
+        String ak = "744mvVZaHIgOBaVzKvXhWXl1";
+        String sk = "hC1k4gTSeRKom5kdORz9TnHc5RIkMEiI";
+        String getTokenURL = "https://openapi.baidu.com/oauth/2.0/token?grant_type=client_credentials" + "&client_id=" + ak + "&client_secret=" + sk;
+        String str = HttpUtil.get(getTokenURL);
+        JsonNode jsonNode = JsonUtil.create().jsonToObject(str, JsonNode.class);
+//        System.out.println(jsonNode.get("access_token").asText());
+
+        File pcmFile = new File("D:\\world\\1901241704.wav");
+//        File pcmFile = new File(path2);
+        ObjectNode paramMap = new ObjectMapper().createObjectNode();
+        paramMap.put("speech", DatatypeConverter.printBase64Binary(FileUtils.readFileToByteArray(pcmFile)));
+//        paramMap.put("format", "pcm");
+        paramMap.put("format", "wav");
+        paramMap.put("rate", 16000);
+        paramMap.put("channel", "1");
+        paramMap.put("lan", "zh");
+        paramMap.put("cuid", "wI2MZhBGKthjBFdyo1miAFddddbX");
+        paramMap.put("token", jsonNode.get("access_token").asText());
+        paramMap.put("len", pcmFile.length());
+        String url = "http://vop.baidu.com/server_api";
+        Map<String, String> requestHeads = new HashMap<>();
+        requestHeads.put("Content-Type", "audio/wav; rate=16000");
+        System.out.println(HttpUtil.postWithJSON(url, paramMap.toString(), requestHeads));
+    }
+
+    public static void mp3Convertpcm(String mp3filepath, String pcmfilepath) throws Exception {
+        // MP3转AudioInputStream
+        InputStream bufferedIn = new BufferedInputStream(new FileInputStream(mp3filepath));
+        OutputStream bufferedOut = new BufferedOutputStream(new FileOutputStream(pcmfilepath));
+        AudioInputStream mp3audioStream = AudioSystem.getAudioInputStream(bufferedIn);
+        //将AudioInputStream MP3文件 转换为PCM
+        AudioFormat baseFormat = mp3audioStream.getFormat();
+        AudioFormat targetFormat = new AudioFormat(AudioFormat.Encoding.PCM_SIGNED, baseFormat.getSampleRate(), 16,
+                baseFormat.getChannels(), baseFormat.getChannels() * 2, baseFormat.getSampleRate(), false);
+        AudioInputStream pcmaudioStream = AudioSystem.getAudioInputStream(targetFormat, mp3audioStream);
+        byte[] pcmBytes = IOUtils.toByteArray(pcmaudioStream);
+        bufferedOut.write(pcmBytes);
+        bufferedOut.close();
+        pcmaudioStream.close();
+        mp3audioStream.close();
+    }
+
+
+    public static void readAudioAliyun() throws Exception {
+        //sz8xP5a3CQPw3uRY
+        String ak_id = "LTAI4Fcs4ENMoRvLELfkTioB";//args[0]; //数加管控台获得的accessId
+        String ak_secret = "g7hjThvAIMpyGbMdaxoTxH5Y5iaZkb"; //args[1]; // 数加管控台获得的accessSecret
+    }
+}
